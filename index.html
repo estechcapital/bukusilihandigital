@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUKU SILIHAN DIGITAL</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- jsPDF for PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <!-- Login Page (Modal) -->
+    <div id="loginPage" class="login-page" style="display: none;">
+        <div class="login-container">
+            <button class="login-close" aria-label="Close" onclick="closeLoginPage()">&times;</button>
+            <div class="login-header">
+                <h1><i class="fas fa-clipboard-list"></i></h1>
+                <h2>LOGIN MODE ADMIN</h2>
+                <p>|</p>
+                <p>Mlebu mode atmin ben iso nyatet silihan!</p>
+                <p>Khusus pengurus BoloPecah</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="......" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="......" required>
+                </div>
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+            <div class="login-help">
+                <p>Email karo password njaluk pak ketua!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App (Hidden until initialized) -->
+    <div id="mainApp" style="display: none;">
+        <div class="container">
+            <header>
+                <div class="header-content">
+                    <h1><i class="fas fa-clipboard-list"></i> BUKU SILIHAN DIGITAL</h1>
+                    <div class="user-info">
+                        <span id="userEmail"></span>
+                        <button id="btnStock" class="btn-stck" onclick="openStockModal()">
+                            <i class="fas fa-boxes"></i> Stok Barang
+                        </button>
+                        <button id="btnAbout" class="btn-about" onclick="openAboutModal()">
+                            <i class="fas fa-info-circle"></i> Menu
+                        </button>
+                        <button id="btnLogin" class="btn-login-header" onclick="showLoginPage()" style="display: none; background-color: white; color: green; font-weight: bold;">
+                            <i class="fas fa-sign-in-alt"></i> Mode Admin
+                        </button>
+                        <button id="btnLogout" class="btn-logout" onclick="logout()" style="display: none; font-weight: bold; background-color: white; color: red;">
+                            <i class="fas fa-sign-out-alt"></i> Keluar
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Form Section -->
+            <section id="loanFormSection" class="form-section">
+                <h2><i class="fas fa-plus-circle"></i> Formulir Silihan</h2>
+                <form id="loanForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="borrowerName">Nama Peminjam</label>
+                            <input type="text" id="borrowerName" placeholder="......" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loanDate">Tanggal Pinjam</label>
+                            <input type="date" id="loanDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="penanggungJawab">Penanggung Jawab</label>
+                            <input type="text" id="penanggungJawab" placeholder="......" required>
+                        </div>
+                    </div>
+
+                    <div class="items-section">
+                        <h3>Barang yang Dipinjam</h3>
+                        <!-- Datalist untuk pilihan barang & cek stok -->
+                        <datalist id="barangList"></datalist>
+                        
+                        <table id="itemsTable">
+                            <thead>
+                                <tr>
+                                    <th>Barang</th>
+                                    <th>Jumlah</th>
+                                    <th>Ket</th>
+                                    <th>Del</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsBody">
+                                <tr class="item-row">
+                                    <td>
+                                        <input type="text" class="item-name" list="barangList" placeholder="Barang" required oninput="handleItemInputChange(this)">
+                                    </td>
+                                    <td>
+                                        <input type="number" class="item-quantity" placeholder="Jml" min="1" value="1" required oninput="handleItemQtyChange(this)">
+                                    </td>
+                                    <td>
+                                        <input type="text" class="item-note" placeholder="Ket">
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn-remove-item" onclick="removeItemRow(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn-add-item admin-only" onclick="addItemRow()">
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-save admin-only" id="btnSaveLoan">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Search and Filter Section -->
+            <section class="search-filter-section">
+                <h2><i class="fas fa-history"></i> Riwayat Silihan</h2>
+                <div class="search-filter">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Cari berdasarkan nama peminjam...">
+                    </div>
+                    <div class="filter-box">
+                        <input type="date" id="filterDate">
+                        <button class="btn-filter" onclick="filterByDate()">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                        <button class="btn-reset" onclick="resetFilter()">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History Section -->
+            <section class="history-section">
+                <div id="historyList" class="history-list">
+                    <!-- History items will be rendered here -->
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal for Detail View -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="detailContent">
+                <!-- Detail content will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Confirm Return -->
+    <div id="confirmReturnModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeConfirmReturnModal()">&times;</span>
+            <div id="confirmReturnContent">
+                <!-- Confirm return content will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Item Stock View -->
+    <div id="stockModal" class="modal">
+        <div class="modal-content modal-about" style="max-width: 650px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-boxes"></i> Daftar Stok Bolo Pecah</h2>
+                <button class="btn-clse" onclick="closeStockModal()">Tutup</button>
+            </div>
+            <div class="modal-body">
+                <div id="stockContent">
+                    <!-- Stock table will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for About App -->
+    <div id="aboutModal" class="modal">
+        <div class="modal-content modal-about">
+            <div class="modal-header">
+                <h2>Iki Opo?</h2>
+                <button class="btn-clse" onclick="closeAboutModal()">Tutup</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Iki Jenenge:</strong> BUKU SILIHAN DIGITAL</p>
+                <p><strong>Fitur Utama:</strong></p>
+                <ul>
+                    <li>Ndelok daftar silihan & stok barang</li>
+                    <li>Nyatet silihan (tapi khusus pengurus bolopecah)</li>
+                    <li>Ngecek wes ulih ulih opo urung, trus barange kurang piro</li>
+                    <li>Donglot data dadi PDF trus iso diprint</li>
+                </ul>
+                <p><strong>Program Info:</strong></p>
+                <p>Versi: 1.0.1</p>
+                <p>Release: 17-1-2026 (Updated to Google Sheets API)</p>
+                <p>Host-web: github-pages</p>
+                <p>Database Engine: Google Sheets & Apps Script API</p>
+                <p>Developer: ESTECH CAPITAL <a href="https://estechcapital.github.io/home" target="_blank">[ https://estechcapital.github.io/home ]</a></p>
+            </div>
+            <div class="modal-footer">
+                <a href="https://drive.google.com/file/d/1XE6EBNjVQwQD7XncvjDuxM9YsAuQ7SOS/view?usp=drivesdk" id="downloadApkModal" class="btn-download-apk" target="_blank">
+                    <i class="fas fa-download"></i> Download APK
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Template (Hidden) -->
+    <div id="pdfTemplate" class="pdf-template">
+        <div class="pdf-header">
+            <h1>NOTA PEMINJAMAN BARANG</h1>
+            <div class="pdf-info">
+                <p><strong>Nomor Nota:</strong> <span id="pdfInvoiceNumber"></span></p>
+                <p><strong>Tanggal:</strong> <span id="pdfCurrentDate"></span></p>
+            </div>
+        </div>
+        <div class="pdfBorrower-info">
+            <table>
+                <tr>
+                    <td><strong>Nama Peminjam:</strong></td>
+                    <td id="pdfBorrowerName"></td>
+                </tr>
+                <tr>
+                    <td><strong>Tanggal Pinjam:</strong></td>
+                    <td id="pdfLoanDate"></td>
+                </tr>
+                <tr>
+                    <td><strong>Penanggung Jawab:</strong></td>
+                    <td id="pdfPenanggungJawab"></td>
+                </tr>
+            </table>
+        </div>
+        <div class="pdfItems-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Barang</th>
+                        <th>Jml Pinjam</th>
+                        <th>Jml Kembali</th>
+                        <th>Kurang</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody id="pdfItemsBody">
+                </tbody>
+            </table>
+        </div>
+        <div class="pdf-footer">
+            <div class="signature-box">
+                <p><strong>Penanggung Jawab:</strong></p>
+                <div class="signature-line"></div>
+            </div>
+            <div class="signature-box">
+                <p><strong>Peminjam:</strong></p>
+                <div class="signature-line"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Edit Loan -->
+    <div id="editModal" class="modal">
+        <div class="modal-content modal-edit-large">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <div id="editContent">
+                <!-- Edit content will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- API Config (Pengganti firebase-config.js) -->
+    <script src="api-config.js"></script>
+    <!-- App Script -->
+    <script src="script.js"></script>
+</body>
+</html>
